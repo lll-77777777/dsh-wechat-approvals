@@ -21,8 +21,10 @@
 > 没绑定会话时，审批和通知找不到推送目标，功能等于不生效（最容易漏的一步）。
 
 ```bash
-# 1. 先装官方插件（提供登录、扫码、消息通道）
-dsh plugin --profile desktop add dsh-wechat-plugin
+# 1. 先装官方微信插件（提供登录、扫码、消息通道）
+#    npm 包名：dsh-wechat-plugin   官方仓库：https://github.com/xcisxc29/dsh-wechat
+#    建议锁 0.43.1 —— 本 fork 就是基于这个版本改的
+dsh plugin --profile desktop add dsh-wechat-plugin@0.43.1
 
 # 2. 再用本仓库覆盖同名包
 dsh plugin --profile desktop add github:lll-77777777/dsh-wechat-approvals
@@ -31,6 +33,8 @@ dsh plugin --profile desktop add github:lll-77777777/dsh-wechat-approvals
 ```
 
 也可以直接在 DSH 的「插件 → 添加插件」里粘贴仓库地址。
+
+**别下错**：官方插件是 `dsh-wechat-plugin`（作者 xcisxc29，仓库 `dsh-wechat`）；本仓库只有 `README.md`、`lib/`、`dist/` 这些替换文件，不是独立插件、不能单独提供登录功能。
 
 **顺序不能反**：先官方、后本仓库。反过来的话官方版会把本仓库覆盖掉。
 

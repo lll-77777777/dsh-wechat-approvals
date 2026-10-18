@@ -73,10 +73,12 @@ pwsh -ExecutionPolicy Bypass -File "E:\大肥鱼人设\dsh-wechat-approvals\rest
 
 ```bash
 # 1. 先装官方微信插件（提供登录、二维码、依赖 qrcode 那一套）
-dsh plugin --profile desktop add dsh-wechat-plugin
+#    官方仓库：https://github.com/xcisxc29/dsh-wechat   包名：dsh-wechat-plugin
+#    建议锁版本 0.43.1（本 fork 的基线）
+dsh plugin --profile desktop add dsh-wechat-plugin@0.43.1
 
 # 2. 再用这个仓库覆盖同名包
-dsh plugin --profile desktop add github:<你的用户名>/<仓库名>
+dsh plugin --profile desktop add github:lll-77777777/dsh-wechat-approvals
 ```
 
 然后重启 DSH。
