@@ -15,13 +15,13 @@
     "plugin",
     "remote-control"
   ],
-  "homepage": "https://github.com/xcisxc29/dsh-wechat#readme",
+  "homepage": "https://github.com/lll-77777777/dsh-wechat-approvals#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xcisxc29/dsh-wechat.git"
+    "url": "git+https://github.com/lll-77777777/dsh-wechat-approvals.git"
   },
   "bugs": {
-    "url": "https://github.com/xcisxc29/dsh-wechat/issues"
+    "url": "https://github.com/lll-77777777/dsh-wechat-approvals/issues"
   },
   "main": "lib/host.js",
   "types": "lib/host.d.ts",
