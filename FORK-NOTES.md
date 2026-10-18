@@ -97,3 +97,39 @@ dsh plugin --profile desktop add github:lll-77777777/dsh-wechat-approvals
 
 装完验证：桌面会话触发一次需要权限的操作 → 桌面弹卡片 → 10 秒不点 → 微信收到「🔐 需要你确认」。
 
+---
+
+## 官方插件升级后自动恢复（2026-10-18 加）
+
+官方升级会把 `node_modules\dsh-wechat-plugin` 整个换成官方版，fork 就没了。
+现在的做法是两层：
+
+**1. 自动（启动文件夹）**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-autostart.ps1
+```
+
+往 `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\` 放一个
+`DSH-WeChat-Approvals-Restore.vbs`，每次登录后台跑一次 `check-and-restore.ps1`。
+
+- 补丁还在 → 什么都不做，写一行日志
+- 被覆盖 → 先做**接口自检**（`lib/interactions.js` 要找得到 `presentApproval`/`parseApprovalReply`，
+  `dist/core/lib/state.js` 要找得到 `bindings`，`lib/services.js` 要找得到 `readStreamFrame`）：
+  - 通过 → 备份官方版为 `dsh-wechat-plugin.backup-<时间戳>`，再整包复制回来，补 `cordis.yml` 开关和 dsh-ops 补丁
+  - 不通过（官方把内部结构改了）→ **拒绝覆盖**（退出码 2），只写日志，等人工适配 fork
+- 日志：`restore.log`（在脚本目录，不是 `.dsh` 下——那里会被 ACL 挡住写不进去）
+- 卸载：`install-autostart.ps1 -Remove`；想用计划任务：`-Task`（本机 DSH 会话里注册任务被 job object 拒，得在普通窗口跑）
+
+**2. 手动**
+
+`check-and-restore.ps1`（带自检、可换 profile：`-ProfileDir`）或老的 `restore.ps1`。
+
+### 踩过的坑（改脚本别踩回去）
+
+- **vbs 必须是纯 ASCII**：WScript 按系统 ANSI（GBK）读 `.vbs`，文件里直接写中文路径会乱码 → 脚本根本不跑。
+  路径用 `ChrW(22823) & ChrW(32933) & ...` 拼；`install-autostart.ps1` 里的 `ToVbsString` 就是干这个的。
+- **ps1 必须存成 UTF-8 带 BOM**：Windows PowerShell 5.1 读无 BOM 的 UTF-8 会按 GBK 解中文 → 大面积语法错误。
+  `[System.IO.File]::WriteAllText($p, $c, (New-Object System.Text.UTF8Encoding($true)))`。
+- **写文件用 .NET 不用 `Set-Content -Encoding utf8`**：5.1 会加 BOM，YAML/JS 解析器可能因此报错。
+

@@ -107,17 +107,34 @@ profile 的 `cordis.yml` 里，`dsh-wechat-plugin` 的 `config` 段：
 
 仓库里的 `restore.ps1` 包含这段检查与修复（Windows 专用）。
 
-### 5. 升级会覆盖本插件
+### 5. 升级会覆盖本插件（有自动恢复）
 
 DSH 或官方微信插件升级时，`node_modules\dsh-wechat-plugin` 会被重新安装成官方版，本插件的改动丢失。
 
-升级后跑一次（Windows）：
+**自动恢复（推荐，一次部署长期有效）**：
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\restore.ps1
+powershell -ExecutionPolicy Bypass -File .\install-autostart.ps1
+```
+
+它往 Windows「启动」文件夹放一个 vbs，每次登录后台跑一次 `check-and-restore.ps1`：
+补丁在 → 什么都不做；被覆盖 → 先做接口自检，通过就备份官方版并恢复，不通过（官方接口大改）就**拒绝覆盖**并写日志，等人工适配。
+
+- 日志：脚本目录下的 `restore.log`
+- 卸载：`powershell -ExecutionPolicy Bypass -File .\install-autostart.ps1 -Remove`
+- 想用计划任务代替启动项：加 `-Task`（需要能注册任务的环境）
+
+**手动恢复**：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\check-and-restore.ps1
+# 或旧版精简脚本
+powershell -ExecutionPolicy Bypass -File .\restore.ps1
 ```
 
 脚本是幂等的：检查版本 → 不是本 fork 就备份并覆盖 → 检查 `cordis.yml` 开关 → 检查 `dsh-ops` 补丁。跑完重启 DSH。
+
+**退出码**：`0` 已就绪/已恢复，`2` 官方接口不兼容（未覆盖，要人工改 fork），`3` 官方插件没装。
 
 ### 6. 版本绑定
 
