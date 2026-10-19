@@ -20,6 +20,19 @@
 另有 DSH 自带包的补丁（不是微信插件）：
 `profiles\desktop\node_modules\dsh-ops\lib\workspace-preparation.js` 的 spawn 参数加 `-ExecutionPolicy Bypass`，修 PowerShell 执行策略导致的 shell 工具全挂。
 
+## 配额优化（2026-10-19 加）
+
+起因：微信一个回复窗口只允许连发 10 条，攒满后剩下的消息只能排队等你回话；一屏冒出好几条零碎消息时容易漏看，漏了就等于转发失败。
+原则：**只减条数，不动通道**——配额是腾讯侧的，改协议没有意义。
+
+| 位置 | 改动 | 效果 |
+| --- | --- | --- |
+| `lib/host.js` `#sendWithinLimit` | 长回复不再先发一句「回复较长（N 字），已作为文件发送」，直接发文件；字数挪进文件名 `回复-<字数>字-<时间>.md` | 长回复固定吃 2 条 → 1 条 |
+| `dist/core/lib/quota.js` `QUOTA_WARN_AT` | `QUOTA_PER_TOKEN - 2` → `QUOTA_PER_TOKEN - 4`（第 8 条提醒 → 第 6 条） | 提醒本身也占一条，留 4 条余量，回一句之后还能真的接上内容 |
+| `lib/host.js` `#flushPending` | 补发积压时在**第一条正文前**加「（补发积压 N 条）」，不单独发提示 | 积压不再静默消失，一眼知道一口气来了几条 |
+
+备份：`_fork-backup/host.js.20261019-before-quota-tune`、`_fork-backup/quota.js.20261019-before-quota-tune`（只留在生效目录，源仓库不备份）。
+
 ## 开关（profile 的 cordis.yml，插件 config 段）
 
 ```yaml

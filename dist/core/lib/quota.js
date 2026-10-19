@@ -24,10 +24,12 @@ export const QUOTA_PER_TOKEN = 10;
 /**
  * The send count at which the user is asked for a new window.
  *
- * Two short of the limit rather than at it, because the warning is a message too: asking at ten
- * would be asking into a window with no slot left to carry the ask.
+ * Four short of the limit, not two. The warning is a message too, so asking costs a slot; at two
+ * short the ask landed with the window already effectively over — the answer came back and there
+ * was room for one reply before it filled again. Four short leaves room for the answer to be
+ * followed by real content, which is the whole point of asking.
  */
-export const QUOTA_WARN_AT = QUOTA_PER_TOKEN - 2;
+export const QUOTA_WARN_AT = QUOTA_PER_TOKEN - 4;
 /**
  * What the user is told as the window runs low.
  *
