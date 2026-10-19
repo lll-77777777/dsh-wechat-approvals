@@ -1,6 +1,6 @@
 {
   "name": "dsh-wechat-plugin",
-  "version": "0.43.1-desknotify.1",
+  "version": "0.43.1-desknotify.2",
   "type": "module",
   "description": "WeChat channel for DeepSeek Harness, forked to relay desktop approval prompts and turn-finished notices to WeChat. Lock the PC, walk away, and drive the agent from your phone.",
   "keywords": [
