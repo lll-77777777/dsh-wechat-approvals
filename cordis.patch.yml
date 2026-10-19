@@ -14,22 +14,29 @@
 # `autoStart` reconnects stored bot accounts on boot. Leave it false and turn the
 # channel on from Settings; the choice is persisted in the channel's own state file.
 #
-# The three below are this fork's additions, for a desk-first user whose phone is the
-# second screen:
+# Two of these moved to the channel's own settings page, where they can be flipped
+# without a restart:
 #
-# - `relayUnboundApprovals`: a permission prompt raised by a session that is **not**
-#   bound to WeChat (i.e. a desktop session) is also relayed to the one bound WeChat
-#   conversation. The desktop pane keeps first refusal — its dialog appears at once —
-#   and only after `relayDelayMs` without an answer is the prompt pushed to WeChat;
-#   from then on either side decides, whichever answers first. Set false for the
-#   stock behaviour, where only WeChat-bound sessions forward approvals.
+# - `relayUnboundApprovals` → 「审批请求转微信」. A permission prompt raised by a
+#   session that is **not** bound to WeChat (i.e. a desktop session) is also relayed
+#   to the one bound WeChat conversation. The desktop pane keeps first refusal — its
+#   dialog appears at once — and only after `relayDelayMs` without an answer is the
+#   prompt pushed to WeChat; from then on either side decides, whichever answers
+#   first. Off leaves desktop approvals entirely to the desktop.
+# - `notifyTurnEnd` → 「任务完成提示」. When a turn in an unbound session finishes, one
+#   short "✅ 任务完成" message (with the answer's first 700 characters) is sent to the
+#   same conversation. Empty turns are skipped and one session is announced at most
+#   once per 30 seconds. Off keeps the phone quiet except for approvals.
+#
+# They moved because both answer "is the user at the desk right now?", which changes
+# several times a day — and because the settings page can flip them on a presence
+# change (lock screen / five minutes idle), which a config field cannot do.
+#
+# The three below stay here: they are thresholds, tuned once and then left alone.
+#
 # - `relayDelayMs`: how long the desktop gets before the prompt is also sent to
 #   WeChat, in milliseconds. Defaults to 10000 (ten seconds). A prompt with no desktop
 #   answerer at all is relayed immediately rather than waiting this out.
-# - `notifyTurnEnd`: when a turn in an unbound session finishes, one short
-#   "✅ 任务完成" message (with the answer's first 700 characters) is sent to the same
-#   conversation. Empty turns are skipped and one session is announced at most once
-#   per 30 seconds. Set false to keep the phone quiet except for approvals.
 # - `notifyTurnEndMinMs` / `notifyTurnEndMinTools`: a finished turn is announced only
 #   if it ran at least this long **or** made at least this many tool calls; anything
 #   shorter and quieter is a question answered in the desktop pane, and the phone is
@@ -40,8 +47,6 @@
       name: 'dsh-wechat-plugin'
       config:
         autoStart: true
-        relayUnboundApprovals: true
         relayDelayMs: 10000
-        notifyTurnEnd: true
         notifyTurnEndMinMs: 60000
         notifyTurnEndMinTools: 5

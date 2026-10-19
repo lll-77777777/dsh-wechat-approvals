@@ -31,6 +31,18 @@ export const DEFAULT_SETTINGS = {
     requireConfirmation: true,
     permissionPreset: 'danger-full-access',
     allowCrossSessionNotify: true,
+    /*
+     * Push categories.
+     *
+     * Each one is a switch the user can flip without a restart, which is the whole point: whether
+     * a notification is wanted depends on whether the user is sitting at the desk right now, and
+     * that changes several times a day. A category that can only be turned off by editing config
+     * and restarting is, in practice, a category that always stays on.
+     */
+    notifyTurnEnd: true,
+    notifyToolEnabled: true,
+    relayUnboundApprovals: true,
+    autoDeskMode: false,
     workspacePath: '',
     presenceNote: '[渠道：微信] 你在和微信上的用户对话，对方在手机上，看不到这台电脑的屏幕和文件系统。' +
         '不要让他去"打开某个路径"或"看某个文件"。需要给他看东西时，直接发送：' +
@@ -54,6 +66,10 @@ export function resolveSettings(state) {
         requireConfirmation: stored.requireConfirmation ?? DEFAULT_SETTINGS.requireConfirmation,
         permissionPreset: stored.permissionPreset ?? DEFAULT_SETTINGS.permissionPreset,
         allowCrossSessionNotify: stored.allowCrossSessionNotify ?? DEFAULT_SETTINGS.allowCrossSessionNotify,
+        notifyTurnEnd: stored.notifyTurnEnd ?? DEFAULT_SETTINGS.notifyTurnEnd,
+        notifyToolEnabled: stored.notifyToolEnabled ?? DEFAULT_SETTINGS.notifyToolEnabled,
+        relayUnboundApprovals: stored.relayUnboundApprovals ?? DEFAULT_SETTINGS.relayUnboundApprovals,
+        autoDeskMode: stored.autoDeskMode ?? DEFAULT_SETTINGS.autoDeskMode,
         workspacePath: stored.workspacePath ?? DEFAULT_SETTINGS.workspacePath,
         presenceNote: stored.presenceNote ?? DEFAULT_SETTINGS.presenceNote,
     };

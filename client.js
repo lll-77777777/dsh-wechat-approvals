@@ -144,7 +144,7 @@ window.__ModuleLoader__.load({
         saveFailed: '保存失败',
         saveIgnored: '这些值没有被主机接受，已改回实际生效的值：',
         settingsTitle: '行为设置',
-        settingsHint: '改完点「保存设置」。多数设置立即生效；「会话工作目录」要重启 DSH 才生效。',
+        settingsHint: '「推送」那几项一拨就保存；其余改完点「保存设置」。多数设置立即生效，「会话工作目录」要重启 DSH 才生效。',
         saveRestart: '「会话工作目录」已保存，但新目录要重启 DSH 后才生效——已经建好的对话不会搬家。',
         groupConnection: '连接',
         groupConnectionHint: '开关通道、绑定微信账号。',
@@ -185,6 +185,21 @@ window.__ModuleLoader__.load({
         workspacePathPicked: '已填进输入框。点「保存设置」才会真正保存——选文件夹本身不保存。',
         workspacePathPickFailed: '打开文件夹选择器失败',
         workspacePathNotInEffect: '尚未生效，重启 DSH 后启用。',
+        pushTitle: '推送',
+        pushHint: '在电脑前就把提示关掉，离开再打开。下面几项各自独立。',
+        deskMode: '我现在',
+        deskModeHere: '在电脑前 —— 任务跑完不推微信',
+        deskModeAway: '走开了 —— 任务完成和主动推送都发到微信',
+        deskModeSetHere: '我回来了',
+        deskModeSetAway: '我走开了',
+        notifyTurnEnd: '任务完成提示',
+        notifyTurnEndHint: '桌面上的任务跑完，推一条「✅ 任务完成」到微信。短问答不推。',
+        notifyToolEnabled: '允许 AI 主动推送',
+        notifyToolEnabledHint: '关掉后 AI 的 notify_wechat 一律不发；审批请求不受影响。',
+        relayUnboundApprovals: '审批请求转微信',
+        relayUnboundApprovalsHint: '桌面会话弹审批时，十秒没人答也发到微信，两边谁先答算谁。',
+        autoDeskMode: '自动判断（锁屏 = 走开，解锁 = 回来）',
+        autoDeskModeHint: '打开后，前两项随锁屏自动切换。手动改的会在锁屏或解锁那一刻被覆盖。',
         allowCrossSessionNotify: '允许其他会话推送到微信',
         allowCrossSessionNotifyHint:
           '开启后，任何会话都能主动发消息或文件到你微信——包括你正在电脑上干活、它做完后通知你的情况。关掉则只有微信对话自己那个会话能发。',
@@ -252,7 +267,7 @@ window.__ModuleLoader__.load({
         saveIgnored: 'The host did not accept these values, so they were put back to what is in effect:',
         settingsTitle: 'Behaviour',
         settingsHint:
-          'Press Save when you are done. Most settings apply at once; the session workspace needs a DSH restart.',
+          'The push switches save the moment you flip them; everything else needs Save. Most settings apply at once; the session workspace needs a DSH restart.',
         saveRestart:
           'The session workspace was saved, but the new directory takes effect after a DSH restart — conversations that already exist do not move.',
         groupConnection: 'Connection',
@@ -299,6 +314,24 @@ window.__ModuleLoader__.load({
           'Put in the box. It is stored when you press Save — choosing a folder does not save anything by itself.',
         workspacePathPickFailed: 'Could not open the folder dialog',
         workspacePathNotInEffect: 'Not in effect yet; it is used after a DSH restart.',
+        pushTitle: 'Pushes',
+        pushHint: 'Turn them off while you are at the desk, back on when you leave. Each one is independent.',
+        deskMode: 'Right now',
+        deskModeHere: 'At the desk — a finished task is not sent',
+        deskModeAway: 'Away — finished tasks and agent messages go to WeChat',
+        deskModeSetHere: 'I am back',
+        deskModeSetAway: 'I am leaving',
+        notifyTurnEnd: 'Task-finished notice',
+        notifyTurnEndHint:
+          'When a desktop task finishes, one "✅ done" message is sent. Quick questions are not announced.',
+        notifyToolEnabled: 'Let the agent push to WeChat',
+        notifyToolEnabledHint: 'Off silences notify_wechat entirely; approval requests are unaffected.',
+        relayUnboundApprovals: 'Send approval requests to WeChat',
+        relayUnboundApprovalsHint:
+          'A desktop approval nobody answers within ten seconds is also sent to WeChat, and either side can settle it.',
+        autoDeskMode: 'Detect it (locked = away, unlocked = back)',
+        autoDeskModeHint:
+          'The two above then follow the lock screen. A change made by hand is overwritten the next time the screen locks or unlocks.',
         allowCrossSessionNotify: 'Let other sessions push to WeChat',
         allowCrossSessionNotifyHint:
           'On, any session may send you a message or a file — which is how a task that finishes while you are away can still reach you. Off, only the session the WeChat conversation is bound to may send.',
@@ -747,6 +780,47 @@ a.dsh-wechat-button { text-decoration: none; }
 
       async function toggle(enabled) {
         await act(`${PREFIX}/toggle`, { enabled })
+      }
+
+      /**
+       * Flip the two push categories together, for the one-button desk switch.
+       *
+       * Kept apart from {@link saveSettings} because that one posts the whole draft, including
+       * fields the user may still be typing into. This posts exactly the pair that belongs to the
+       * desk mode and folds the answer back, so the page shows what is stored rather than what was
+       * clicked.
+       *
+       * @param {boolean} quiet - True to switch the notifications off, i.e. "I am at the desk".
+       */
+      async function savePatch(patch) {
+        /*
+         * Fold the rest of the draft into the request. The push switches are meant to be flipped on
+         * the spot, and a switch flipped a moment earlier may still be unsaved; posting only the
+         * field that just changed would silently throw that one away when the answer comes back and
+         * replaces the draft.
+         */
+        const sent = { ...(state.draft ?? {}), ...patch }
+        setState((prev) => ({ ...prev, busy: true, saved: false, error: '', ignored: [] }))
+        try {
+          const result = await request(`${PREFIX}/settings`, {
+            method: 'POST',
+            body: JSON.stringify(sent),
+          })
+          const saved = result?.settings ?? sent
+          setState((prev) => ({ ...prev, busy: false, saved: true, settings: saved, draft: saved }))
+          setTimeout(() => setState((prev) => ({ ...prev, saved: false })), 1500)
+        } catch (error) {
+          reportFailure('save-patch', error)
+          setState((prev) => ({
+            ...prev,
+            busy: false,
+            error: error instanceof Error ? error.message : String(error),
+          }))
+        }
+      }
+
+      async function setDeskMode(quiet) {
+        await savePatch({ notifyTurnEnd: !quiet, notifyToolEnabled: !quiet })
       }
 
       async function saveSettings() {
@@ -1293,6 +1367,129 @@ a.dsh-wechat-button { text-decoration: none; }
                     ? h('span', { className: 'dsh-wechat-ok' }, t.workspacePathPicked)
                     : null,
                 ),
+              ),
+
+              /*
+               * The push categories, with one button that flips the two that matter while working.
+               *
+               * They sit together because they all answer one question — is the user at the desk —
+               * and the answer changes several times a day. The button writes the pair in one save,
+               * so the page never shows a half-switched desk mode; the categories stay individually
+               * switchable below it for the cases the button guesses wrong.
+               */
+              h('h3', null, t.pushTitle),
+              h('p', null, t.pushHint),
+
+              h(
+                'div',
+                { className: 'dsh-wechat-row' },
+                h(
+                  'div',
+                  { className: 'dsh-wechat-row-text' },
+                  h('label', null, t.deskMode),
+                  h(
+                    'span',
+                    { className: 'dsh-wechat-hint' },
+                    state.draft.notifyTurnEnd === false ? t.deskModeHere : t.deskModeAway,
+                  ),
+                ),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'dsh-wechat-button dsh-wechat-outline',
+                    disabled: state.busy,
+                    /*
+                     * The label names the move, not the state. The hint above already says "at the
+                     * desk", so repeating that on the button makes it read like a no-op — it must
+                     * say where clicking takes you, which is "I am leaving" while the user is still
+                     * here. The handler writes the pair, not a third state, so the button and the
+                     * toggles below can never disagree.
+                     */
+                    onClick: () => void setDeskMode(state.draft.notifyTurnEnd !== false),
+                  },
+                  state.draft.notifyTurnEnd === false ? t.deskModeSetAway : t.deskModeSetHere,
+                ),
+              ),
+
+              h(
+                'div',
+                { className: 'dsh-wechat-row' },
+                h(
+                  'div',
+                  { className: 'dsh-wechat-row-text' },
+                  h('label', null, t.notifyTurnEnd),
+                  h('span', { className: 'dsh-wechat-hint' }, t.notifyTurnEndHint),
+                ),
+                h(Toggle, {
+                  checked: state.draft.notifyTurnEnd !== false,
+                  label: t.notifyTurnEnd,
+                  disabled: state.busy,
+                  onChange: (next) => {
+                    edit('notifyTurnEnd', next)
+                    void savePatch({ notifyTurnEnd: next })
+                  },
+                }),
+              ),
+
+              h(
+                'div',
+                { className: 'dsh-wechat-row' },
+                h(
+                  'div',
+                  { className: 'dsh-wechat-row-text' },
+                  h('label', null, t.notifyToolEnabled),
+                  h('span', { className: 'dsh-wechat-hint' }, t.notifyToolEnabledHint),
+                ),
+                h(Toggle, {
+                  checked: state.draft.notifyToolEnabled !== false,
+                  label: t.notifyToolEnabled,
+                  disabled: state.busy,
+                  onChange: (next) => {
+                    edit('notifyToolEnabled', next)
+                    void savePatch({ notifyToolEnabled: next })
+                  },
+                }),
+              ),
+
+              h(
+                'div',
+                { className: 'dsh-wechat-row' },
+                h(
+                  'div',
+                  { className: 'dsh-wechat-row-text' },
+                  h('label', null, t.relayUnboundApprovals),
+                  h('span', { className: 'dsh-wechat-hint' }, t.relayUnboundApprovalsHint),
+                ),
+                h(Toggle, {
+                  checked: state.draft.relayUnboundApprovals !== false,
+                  label: t.relayUnboundApprovals,
+                  disabled: state.busy,
+                  onChange: (next) => {
+                    edit('relayUnboundApprovals', next)
+                    void savePatch({ relayUnboundApprovals: next })
+                  },
+                }),
+              ),
+
+              h(
+                'div',
+                { className: 'dsh-wechat-row' },
+                h(
+                  'div',
+                  { className: 'dsh-wechat-row-text' },
+                  h('label', null, t.autoDeskMode),
+                  h('span', { className: 'dsh-wechat-hint' }, t.autoDeskModeHint),
+                ),
+                h(Toggle, {
+                  checked: state.draft.autoDeskMode === true,
+                  label: t.autoDeskMode,
+                  disabled: state.busy,
+                  onChange: (next) => {
+                    edit('autoDeskMode', next)
+                    void savePatch({ autoDeskMode: next })
+                  },
+                }),
               ),
 
               /*
