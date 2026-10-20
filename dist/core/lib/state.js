@@ -581,6 +581,19 @@ const SETTING_VALIDATORS = {
     permissionPreset: (raw) => raw === 'danger-full-access' || raw === 'auto' || raw === 'default' ? raw : undefined,
     allowCrossSessionNotify: (raw) => (typeof raw === 'boolean' ? raw : undefined),
     workspacePath: (raw) => (typeof raw === 'string' ? raw : undefined),
+    /*
+     * Push categories — 2026-10-21 fix.
+     *
+     * These four were missing from the allowlist while `resolveSettings` and `DEFAULT_SETTINGS`
+     * already knew them, so every restart silently dropped the stored value and the switch came
+     * back to its default: 「任务完成提示」 and 「允许 AI 主动推送」 turned back on by themselves after a
+     * restart. A setting that saves fine and is gone after a restart is worse than one that never
+     * saved — nothing in the UI hints at it.
+     */
+    notifyTurnEnd: (raw) => (typeof raw === 'boolean' ? raw : undefined),
+    notifyToolEnabled: (raw) => (typeof raw === 'boolean' ? raw : undefined),
+    relayUnboundApprovals: (raw) => (typeof raw === 'boolean' ? raw : undefined),
+    autoDeskMode: (raw) => (typeof raw === 'boolean' ? raw : undefined),
 };
 /**
  * Keep only settings of the expected type.
